@@ -200,7 +200,7 @@ require_once 'header.php';
 </ul>
 
 
-<?php require_once 'footer.php';
+<?php require_once 'footer.html';
 
 $stmt->close();
 $mysqli->close();

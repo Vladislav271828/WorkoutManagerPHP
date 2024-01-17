@@ -9,5 +9,3 @@ function checkAuthentication()
         exit();
     }
 }
-
-?>

@@ -25,5 +25,5 @@ require_once 'header.php';
 </html>
 
 <?php
-require_once 'footer.php';
+require_once 'footer.html';
 ?>

@@ -102,7 +102,7 @@ require_once 'header.php';
 
 
 <?php
-require_once 'footer.php';
+require_once 'footer.html';
 
 $result->close();
 $mysqli->close();

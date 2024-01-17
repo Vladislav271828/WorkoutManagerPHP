@@ -187,4 +187,4 @@ $resultExercises = $stmtExercises->get_result();
   <button type="submit" class="button logout" name="delete_workout">Delete Workout</button>
 </form>
 
-<?php require_once 'footer.php'; ?>
+<?php require_once 'footer.html'; ?>

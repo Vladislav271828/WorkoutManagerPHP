@@ -119,7 +119,7 @@ require_once 'header.php';
 
 
 <?php
-
+require_once 'footer.html';
 $stmtTrainers->close();
 $stmtExercises->close();
 

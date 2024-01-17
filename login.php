@@ -57,6 +57,6 @@ require_once 'loginheader.php';
   <p>Don't have a profle?? <a href="register.php">Click here</a></p>
 </div>
 <?php
-require_once 'footer.php';
+require_once 'footer.html';
 
 ?>
