@@ -10,22 +10,37 @@ $pageTitle = "Exercises";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["delete_exercise"])) {
   $exerciseIdToDelete = filter_var($_POST["exercise_id"], FILTER_VALIDATE_INT);
+  if ($exerciseIdToDelete === false) {
+    echo "Invalid exercise ID";
+    exit();
+  }
+  //get the user_id of the exercise of the database and compare it to the session one
+  $stmt = $mysqli->prepare("SELECT user_id FROM exercises WHERE exercise_id = ?");
+  $stmt->bind_param("i", $exerciseIdToDelete);
+  $stmt->execute();
+  $stmt->bind_result($userId);
+  $stmt->fetch();
+  $stmt->close();
+  if ($_SESSION['user_id'] != $userId) {
+    echo "Exercise not found or does not belong to the current user.";
+    exit();
+  }
 
-  
+
 
   if ($exerciseIdToDelete == true) {
 
-      $stmtCheckReferences = $mysqli->prepare("SELECT COUNT(*) FROM workout_exercises WHERE exercise_id = ?");
-      $stmtCheckReferences->bind_param("i", $exerciseIdToDelete);
-      $stmtCheckReferences->execute();
-      $stmtCheckReferences->bind_result($referencesCount);
-      $stmtCheckReferences->fetch();
-      $stmtCheckReferences->close();
+    $stmtCheckReferences = $mysqli->prepare("SELECT COUNT(*) FROM workout_exercises WHERE exercise_id = ?");
+    $stmtCheckReferences->bind_param("i", $exerciseIdToDelete);
+    $stmtCheckReferences->execute();
+    $stmtCheckReferences->bind_result($referencesCount);
+    $stmtCheckReferences->fetch();
+    $stmtCheckReferences->close();
 
-      if ($referencesCount > 0) {
-          $errorMessege = "This exercise is already used in a workout. Please remove it from the workout first.";
-          goto error;
-      }
+    if ($referencesCount > 0) {
+      $errorMessege = "This exercise is already used in a workout. Please remove it from the workout first.";
+      goto error;
+    }
     $stmtSelect = $mysqli->prepare("SELECT image_url FROM exercises WHERE exercise_id = ?");
     $stmtSelect->bind_param("i", $exerciseIdToDelete);
     $stmtSelect->execute();
@@ -65,7 +80,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["add_exercise"])) {
   $exerciseMuscle = filter_var($_POST["exercise_muscle"], FILTER_SANITIZE_STRING);
 
   if (isset($_FILES["exercise_image"]) && $_FILES["exercise_image"]["size"] > 0) {
-    $allowedExtensions = array("jpg", "jpeg", "png", "gif", "webm");
+    $allowedExtensions = array("jpg", "jpeg", "png", "gif", "webp");
     $targetDirectory = "images/";
     $uploadedFile = $targetDirectory . basename($_FILES["exercise_image"]["name"]);
     $uploadOk = true;
@@ -79,13 +94,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["add_exercise"])) {
       $errorMessege = "Sorry, image is too large.";
       $uploadOk = false;
     } else if (!in_array($imageFileType, $allowedExtensions)) {
-      $errorMessege = "Only JPG, JPEG, PNG, GIF and WEBM images are allowed.";
+      $errorMessege = "Only JPG, JPEG, PNG, GIF and WEBP images are allowed.";
       $uploadOk = false;
     }
     if ($uploadOk) {
       if (move_uploaded_file($_FILES["exercise_image"]["tmp_name"], $uploadedFile)) {
-        $stmt = $mysqli->prepare("INSERT INTO exercises (name, description, muscle, image_url) VALUES (?, ?, ?, ?)");
-        $stmt->bind_param("ssss", $exerciseName, $exerciseDescription, $exerciseMuscle, $uploadedFile);
+        $stmt = $mysqli->prepare("INSERT INTO exercises (name, description, muscle, image_url, user_id) VALUES (?, ?, ?, ?, ?)");
+        $stmt->bind_param("ssssi", $exerciseName, $exerciseDescription, $exerciseMuscle, $uploadedFile, $_SESSION['user_id']);
 
         if ($stmt->execute()) {
           header("Location: exercises.php");
@@ -103,7 +118,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["add_exercise"])) {
 
   } else {
     $stmt = $mysqli->prepare("INSERT INTO exercises (name, description, muscle) VALUES (?, ?, ?)");
-    $stmt->bind_param("sss", $exerciseName, $exerciseDescription, $exerciseMuscle);
+    $stmt->bind_param("ssss", $exerciseName, $exerciseDescription, $exerciseMuscle);
 
     if ($stmt->execute()) {
       header("Location: exercises.php");
@@ -120,7 +135,7 @@ $searchByMuscle = isset($_POST['search_by_muscle']) ? $_POST['search_by_muscle']
 $searchByMuscleSearch = '%' . $searchByMuscle . '%';
 $searchByNameSearch = '%' . $searchByName . '%';
 
-$query = "SELECT exercise_id, name, description, muscle, image_url FROM exercises 
+$query = "SELECT exercise_id, name, description, muscle, image_url, user_id FROM exercises 
           WHERE (name LIKE ? OR ? = '')
           AND (muscle LIKE ? OR ? = '')";
 
@@ -129,7 +144,7 @@ $stmt->bind_param("ssss", $searchByNameSearch, $searchByNameSearch, $searchByMus
 
 $stmt->execute();
 
-$stmt->bind_result($exerciseId, $exerciseName, $exerciseDescription, $exerciseMuscle, $imageUrl);
+$stmt->bind_result($exerciseId, $exerciseName, $exerciseDescription, $exerciseMuscle, $imageUrl, $userId);
 
 require_once 'header.php';
 ?>
@@ -190,11 +205,12 @@ require_once 'header.php';
         echo 'No image available';
       }
       ?>
-
-      <form action="" method="post" class="delete-form">
-        <input type="hidden" name="exercise_id" value="<?php echo $exerciseId; ?>">
-        <button type="submit" name="delete_exercise">Delete</button>
-      </form>
+      <?php if ($_SESSION['user_id'] == $userId): ?>
+        <form action="" method="post" class="delete-form">
+          <input type="hidden" name="exercise_id" value="<?php echo $exerciseId; ?>">
+          <button type="submit" name="delete_exercise">Delete</button>
+        </form>
+      <?php endif; ?>
     </li>
   <?php endwhile; ?>
 </ul>
